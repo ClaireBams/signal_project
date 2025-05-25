@@ -2,6 +2,7 @@ package com.data_management;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Represents a patient and manages their medical records.
@@ -49,9 +50,19 @@ public class Patient {
      *                  epoch
      * @param endTime   the end of the time range, in milliseconds since UNIX epoch
      * @return a list of PatientRecord objects that fall within the specified time
-     *         range
+     * range
      */
     public List<PatientRecord> getRecords(long startTime, long endTime) {
-        // TODO Implement and test this method
+        List<PatientRecord> records = new ArrayList<>();
+        for (PatientRecord record : this.patientRecords) {
+            if (record.getTimestamp() > startTime && record.getTimestamp() < endTime) {
+                records.add(record);
+            }
+        }
+        return records; // temporary placeholder
+    }
+
+    public int getPatientId() {
+        return this.patientId;
     }
 }

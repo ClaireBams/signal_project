@@ -23,4 +23,8 @@ public class Alert {
     public long getTimestamp() {
         return timestamp;
     }
+
+    public void triggerAlert() {
+        System.out.println("Alert for patient " + patientId + ", Condition: " + condition + ", Time: " + timestamp);
+    }
 }

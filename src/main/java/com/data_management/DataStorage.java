@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import com.alerts.AlertGenerator;
 
 /**
@@ -13,7 +14,10 @@ import com.alerts.AlertGenerator;
  * patient IDs.
  */
 public class DataStorage {
+    private static DataStorage instance;
+
     private Map<Integer, Patient> patientMap; // Stores patient objects indexed by their unique patient ID.
+
 
     /**
      * Constructs a new instance of DataStorage, initializing the underlying storage
@@ -21,6 +25,17 @@ public class DataStorage {
      */
     public DataStorage() {
         this.patientMap = new HashMap<>();
+    }
+
+    public static DataStorage getInstance() {
+        if (instance == null) {
+            instance = new DataStorage();
+        }
+        return instance;
+    }
+
+    public static synchronized void setInstance(DataStorage testInstance) {
+        instance = testInstance;
     }
 
     /**
@@ -56,7 +71,7 @@ public class DataStorage {
      * @param endTime   the end of the time range, in milliseconds since the Unix
      *                  epoch
      * @return a list of PatientRecord objects that fall within the specified time
-     *         range
+     * range
      */
     public List<PatientRecord> getRecords(int patientId, long startTime, long endTime) {
         Patient patient = patientMap.get(patientId);
@@ -75,11 +90,19 @@ public class DataStorage {
         return new ArrayList<>(patientMap.values());
     }
 
+    public Patient getPatient(int id) {
+        return patientMap.get(id);
+    }
+
+    public void clear() {
+        patientMap.clear();
+    }
+
     /**
      * The main method for the DataStorage class.
      * Initializes the system, reads data into storage, and continuously monitors
      * and evaluates patient data.
-     * 
+     *
      * @param args command line arguments
      */
     public static void main(String[] args) {
