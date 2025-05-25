@@ -112,7 +112,7 @@ import java.util.Scanner;
  * <p>Expected message format: "patientId,timestamp,label,value"</p>
  * <p>Example: "12,1744113766180,HeartRate,85.0"</p>
  */
-public class SimpleWebSocketClient extends WebSocketClient {
+public class SimpleVersWebSocket extends WebSocketClient {
 
     private final DataStorage dataStorage;
 
@@ -121,7 +121,7 @@ public class SimpleWebSocketClient extends WebSocketClient {
      *
      * @param serverUri the URI of the WebSocket server (e.g. ws://localhost:8887)
      */
-    public SimpleWebSocketClient(URI serverUri) {
+    public SimpleVersWebSocket(URI serverUri) {
         super(serverUri);
         this.dataStorage = DataStorage.getInstance();
     }
@@ -147,11 +147,14 @@ public class SimpleWebSocketClient extends WebSocketClient {
         System.out.println("[WebSocket] Received: " + message);
 
         if (!message.matches("\\d+\\s*,\\s*\\d+\\s*,\\s*[^,]+\\s*,\\s*[^,]+")) {
+
             System.out.println("[WebSocket] Skipping invalid message: " + message);
             return;
+
         }
 
         try {
+            
             String[] parts = message.split(",", 4);
 
             int patientId = Integer.parseInt(parts[0].trim());
@@ -180,6 +183,7 @@ public class SimpleWebSocketClient extends WebSocketClient {
      */
     @Override
     public void onClose(int code, String reason, boolean remote) {
+
         System.out.printf("[WebSocket] Connection closed (%s): %s%n", remote ? "remote" : "local", reason);
     }
 
@@ -190,6 +194,7 @@ public class SimpleWebSocketClient extends WebSocketClient {
      */
     @Override
     public void onError(Exception ex) {
+
         System.err.println("[WebSocket] Error occurred:");
         ex.printStackTrace();
     }
@@ -202,7 +207,7 @@ public class SimpleWebSocketClient extends WebSocketClient {
      */
     public static void main(String[] args) throws Exception {
         URI serverUri = new URI("ws://localhost:8887");
-        SimpleWebSocketClient client = new SimpleWebSocketClient(serverUri);
+        SimpleVersWebSocket client = new SimpleVersWebSocket(serverUri);
         client.connectBlocking();
 
         Scanner scanner = new Scanner(System.in);

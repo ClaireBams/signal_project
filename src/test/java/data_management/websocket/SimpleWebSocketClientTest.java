@@ -1,6 +1,6 @@
 package data_management.websocket;
 
-import com.cardio_generator.SimpleWebSocketClient;
+import com.cardio_generator.SimpleVersWebSocket;
 import com.data_management.DataStorage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -11,14 +11,14 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class SimpleWebSocketClientTest {
 
-    private SimpleWebSocketClient client;
+    private SimpleVersWebSocket client;
     private DataStorage storage;
 
     @BeforeEach
     public void setup() throws Exception {
         storage = new DataStorage();
         DataStorage.setInstance(storage);
-        client = new SimpleWebSocketClient(new URI("ws://localhost:8887"));
+        client = new SimpleVersWebSocket(new URI("ws://localhost:8887"));
     }
 
     @Test

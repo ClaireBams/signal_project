@@ -1,7 +1,7 @@
 package data_management.websocket;
 
 import com.alerts.AlertGenerator;
-import com.cardio_generator.SimpleWebSocketClient;
+import com.cardio_generator.SimpleVersWebSocket;
 import com.data_management.DataStorage;
 import com.data_management.Patient;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,7 +25,7 @@ public class WebSocketIntegrationTest {
 
     @Test
     public void testAlertTriggeringAfterDataIngestion() {
-        SimpleWebSocketClient client = new SimpleWebSocketClient(URI.create("ws://localhost:8887"));
+        SimpleVersWebSocket client = new SimpleVersWebSocket(URI.create("ws://localhost:8887"));
         client.onMessage("1, 1744113766180, SystolicPressure, 85.0");
         client.onMessage("1, 1744113766181, Saturation, 89.0");
 
