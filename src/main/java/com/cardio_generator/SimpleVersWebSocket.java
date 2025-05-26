@@ -1,101 +1,3 @@
-//package com.cardio_generator;
-//
-//import com.data_management.DataStorage;
-//import org.java_websocket.client.WebSocketClient;
-//import org.java_websocket.handshake.ServerHandshake;
-//
-//import java.net.URI;
-//
-///**
-// * A simple WebSocket client that connects to a WebSocket server and listens for patient data.
-// * <p>
-// * Message Format:
-// * <pre>
-// * patientId, timestamp, label, value
-// * </pre>
-// * Example:
-// * <pre>
-// * 12, 1744113766180, HeartRate, 85.0
-// * </pre>
-// * Parsed data is stored into the provided {@link DataStorage} instance.
-// */
-//public class SimpleWebSocketClient extends WebSocketClient {
-//
-//    private final DataStorage dataStorage;
-//
-//    /**
-//     * Constructs a SimpleWebSocketClient with the specified server URI and data storage reference
-//     *
-//     * @param serverUri the URI of the WebSocket server to connect to
-//     */
-//    public SimpleWebSocketClient(URI serverUri) {
-//        super(serverUri);
-//        this.dataStorage = DataStorage.getInstance();
-//    }
-//
-//    /**
-//     * Called when the connection to the server is successfully opened.
-//     */
-//    @Override
-//    public void onOpen(ServerHandshake handshake) {
-//        System.out.println("Connected to WebSocket server");
-//    }
-//
-//    /**
-//     * Called when a message is received from the server.
-//     * The message is parsed and, if valid, stored into the {@link DataStorage}.
-//     *
-//     * @param message the string received
-//     */
-//    @Override
-//    public void onMessage(String message) {
-//        System.out.println("Received: " + message);
-//        try {
-//            // splits message into parts based on commas
-//            String[] parts = message.split(",", 4);
-//            if (parts.length != 4) {
-//                System.err.println("Invalid message format: " + message);
-//                return;
-//            }
-//            // parses each part into respective variables
-//            int patientId = Integer.parseInt(parts[0].trim());
-//            long timestamp = Long.parseLong(parts[1].trim());
-//            String label = parts[2].trim();
-//            String rawValue = parts[3].trim().replace("%", "");
-//            double measurementValue = Double.parseDouble(rawValue);
-//            // adds the data to the storage
-//            dataStorage.addPatientData(patientId, measurementValue, label, timestamp);
-//        } catch (Exception e) {
-//            System.err.println("Failed to parse message: " + message);
-//            e.printStackTrace();
-//        }
-//    }
-//
-//
-//    /**
-//     * Called when the WebSocket connection is closed.
-//     *
-//     * @param code   the closure code
-//     * @param reason the reason for closure
-//     * @param remote true if the closure was initiated by the remote peer
-//     */
-//    @Override
-//    public void onClose(int code, String reason, boolean remote) {
-//        System.out.println("WebSocket connection closed: " + reason);
-//    }
-//
-//    /**
-//     * Called when an error occurs during communication with the WebSocket server.
-//     *
-//     * @param ex the exception that occurred
-//     */
-//    @Override
-//    public void onError(Exception ex) {
-//        System.err.println("WebSocket error:");
-//        ex.printStackTrace();
-//    }
-//}
-
 package com.cardio_generator;
 
 import com.data_management.DataStorage;
@@ -106,121 +8,141 @@ import java.net.URI;
 import java.util.Scanner;
 
 /**
- * SimpleWebSocketClient connects to a WebSocket server to receive patient monitoring data.
- * It parses incoming messages and stores the data using the {@link DataStorage} singleton.
- *
- * <p>Expected message format: "patientId,timestamp,label,value"</p>
- * <p>Example: "12,1744113766180,HeartRate,85.0"</p>
+ * PatientDataReceiver connects to a WebSocket server and listens for real-time
+ * health data messages from patients. It parses each message and stores the data
+ * into a singleton DataStorage instance.
+ * <p>
+ * Expected message format:
+ * patientId,timestamp,label,value
+ * Example:
+ * 12,1744113766180,HeartRate,85.0
+ * <p>
+ * Notes:
+ * - Assumes all messages follow the expected CSV format.
+ * - Messages with missing or malformed data are safely ignored.
  */
 public class SimpleVersWebSocket extends WebSocketClient {
 
-    private final DataStorage dataStorage;
+    // Reference to the shared data storage singleton
+    private final DataStorage storage = DataStorage.getInstance();
 
     /**
-     * Constructs a SimpleWebSocketClient with the given server URI.
+     * Constructs a WebSocket client for the given server URI.
      *
-     * @param serverUri the URI of the WebSocket server (e.g. ws://localhost:8887)
+     * @param endpoint the URI of the WebSocket server (e.g. ws://localhost:8887)
      */
-    public SimpleVersWebSocket(URI serverUri) {
-        super(serverUri);
-        this.dataStorage = DataStorage.getInstance();
+    public SimpleVersWebSocket(URI endpoint) {
+        super(endpoint);
     }
 
     /**
-     * Called when the WebSocket connection is successfully established.
+     * Called once the connection to the WebSocket server is successfully opened.
      *
-     * @param handshake the server handshake data
+     * @param handshakeData server handshake information (unused here)
      */
     @Override
-    public void onOpen(ServerHandshake handshake) {
-        System.out.println("[WebSocket] Connected to server: " + getURI());
+    public void onOpen(ServerHandshake handshakeData) {
+        System.out.println(">> Connected to: " + getURI());
     }
 
     /**
-     * Called when a message is received from the server.
-     * Parses the message and stores it if valid.
+     * Called when a message is received from the WebSocket server.
+     * Delegates parsing and processing to a separate method.
      *
-     * @param message the raw message string in the format "patientId,timestamp,label,value"
+     * @param msg the received message string
      */
     @Override
-    public void onMessage(String message) {
-        System.out.println("[WebSocket] Received: " + message);
+    public void onMessage(String msg) {
+        System.out.println(">> Incoming: " + msg);
+        processMessage(msg); // Delegate to parsing method
+    }
 
-        if (!message.matches("\\d+\\s*,\\s*\\d+\\s*,\\s*[^,]+\\s*,\\s*[^,]+")) {
+    /**
+     * Parses and processes a message in CSV format.
+     * Expected format: "patientId,timestamp,label,value"
+     * If valid, stores the extracted data in the data storage.
+     *
+     * @param msg the raw message string
+     */
+    private void processMessage(String msg) {
+        String[] tokens = msg.split(",", 4); // Limit to 4 parts to handle malformed input
 
-            System.out.println("[WebSocket] Skipping invalid message: " + message);
+        // Check for correct number of fields
+        if (tokens.length != 4) {
+            System.out.println("!! Invalid format: " + msg);
             return;
-
         }
 
         try {
-            
-            String[] parts = message.split(",", 4);
+            // Parse individual fields
+            int id = Integer.parseInt(tokens[0].trim()); // patient ID
+            long time = Long.parseLong(tokens[1].trim()); // timestamp
+            String type = tokens[2].trim(); // measurement label (e.g. HeartRate)
+            double val = Double.parseDouble(tokens[3].trim().replace("%", "")); // numeric value
 
-            int patientId = Integer.parseInt(parts[0].trim());
-            long timestamp = Long.parseLong(parts[1].trim());
-            String label = parts[2].trim();
-            String valueStr = parts[3].trim().replace("%", "");
-            double value = Double.parseDouble(valueStr);
+            // Store data into the shared DataStorage instance
+            storage.addPatientData(id, val, type, time);
 
-            dataStorage.addPatientData(patientId, value, label, timestamp);
+        } catch (NumberFormatException nf) {
+            // Handles invalid number formats (e.g. "NaN" or bad ID/timestamp)
+            System.err.println("!! Number error in: " + msg);
+            nf.printStackTrace();
 
-        } catch (NumberFormatException e) {
-            System.err.println("[WebSocket] Error parsing number in message: " + message);
-            e.printStackTrace();
-        } catch (Exception e) {
-            System.err.println("[WebSocket] Unexpected error while processing message: " + message);
-            e.printStackTrace();
+        } catch (Exception ex) {
+            // Catch-all for unexpected issues (e.g. nulls, array index issues)
+            System.err.println("!! Unexpected error while handling message:");
+            ex.printStackTrace();
         }
     }
 
     /**
      * Called when the WebSocket connection is closed.
      *
-     * @param code   the status code
-     * @param reason the reason for closure
-     * @param remote true if closed remotely by the server
+     * @param statusCode code indicating why connection was closed
+     * @param reason     textual reason for closure
+     * @param byRemote   true if server closed the connection
      */
     @Override
-    public void onClose(int code, String reason, boolean remote) {
-
-        System.out.printf("[WebSocket] Connection closed (%s): %s%n", remote ? "remote" : "local", reason);
+    public void onClose(int statusCode, String reason, boolean byRemote) {
+        System.out.printf(">> Disconnected (%s): %s%n", byRemote ? "server" : "client", reason);
     }
 
     /**
-     * Called when an error occurs during WebSocket communication.
+     * Called if an exception occurs during WebSocket communication.
      *
-     * @param ex the exception that occurred
+     * @param error the exception that occurred
      */
     @Override
-    public void onError(Exception ex) {
-
-        System.err.println("[WebSocket] Error occurred:");
-        ex.printStackTrace();
+    public void onError(Exception error) {
+        System.err.println("!! WebSocket error occurred:");
+        error.printStackTrace();
     }
 
     /**
-     * Optional main method to run and test the WebSocket client interactively.
+     * Optional: Main method to run the client directly from the console.
+     * Connects to the server, allows sending manual messages, and exits on 'exit'.
      *
-     * @param args command-line arguments (not used)
-     * @throws Exception if connection or URI initialization fails
+     * @param args unused command-line arguments
+     * @throws Exception if URI is invalid or connection fails
      */
     public static void main(String[] args) throws Exception {
-        URI serverUri = new URI("ws://localhost:8887");
-        SimpleVersWebSocket client = new SimpleVersWebSocket(serverUri);
-        client.connectBlocking();
+        URI server = new URI("ws://localhost:8887"); // Replace with your WebSocket server URI
+        SimpleVersWebSocket client = new SimpleVersWebSocket(server);
 
-        Scanner scanner = new Scanner(System.in);
-        System.out.println("Type a message to send (type 'exit' to quit):");
+        client.connectBlocking(); // Wait until connection is established
 
-        while (true) {
-            String input = scanner.nextLine();
-            if ("exit".equalsIgnoreCase(input)) {
-                break;
+        // Allow user to type and send messages manually
+        try (Scanner input = new Scanner(System.in)) {
+            System.out.println("Enter text to send (type 'exit' to disconnect):");
+
+            while (true) {
+                String line = input.nextLine();
+                if ("exit".equalsIgnoreCase(line)) break;
+                client.send(line);
             }
-            client.send(input);
         }
 
+        // Clean shutdown
         client.close();
     }
 }
